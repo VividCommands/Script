@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: key-server
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python key_server.py
