@@ -5,14 +5,9 @@ import time
 
 app = Flask(__name__)
 LICENSE_FILE = 'licenses.json'
+LICENSE_DURATION = 7 * 24 * 60 * 60  # 7 days
 
-# 🚨 Hardcoded admin secret (you can change this to anything)
-ADMIN_SECRET = 'admin12345'
-
-# One week in seconds
-LICENSE_DURATION = 7 * 24 * 60 * 60
-
-# Ensure the license file exists
+# Create file if it doesn't exist
 if not os.path.exists(LICENSE_FILE):
     with open(LICENSE_FILE, 'w') as f:
         json.dump({}, f)
@@ -43,29 +38,13 @@ def verify_key():
 @app.route('/add_key', methods=['POST'])
 def add_key():
     data = request.get_json() or {}
-    admin_secret = data.get('admin_secret')
-    new_key = data.get('new_key')
-
-    if admin_secret != ADMIN_SECRET or not new_key:
-        return jsonify({'error': 'Unauthorized or missing key.'}), 401
-
+    new_key = data.get('new_key', '').strip()
+    if not new_key:
+        return jsonify({'error': 'Missing key.'}), 400
     licenses = load_licenses()
     licenses[new_key] = {'created_at': time.time()}
     save_licenses(licenses)
     return jsonify({'success': True, 'message': f'Key {new_key} added.'}), 200
-
-@app.route('/payhip_webhook', methods=['POST'])
-def payhip_webhook():
-    payload = request.get_json() or {}
-    new_key = payload.get('license_key')
-
-    if not new_key:
-        return jsonify({'error': 'No license_key in webhook payload.'}), 400
-
-    licenses = load_licenses()
-    licenses[new_key] = {'created_at': time.time()}
-    save_licenses(licenses)
-    return jsonify({'success': True}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
